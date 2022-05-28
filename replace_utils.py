@@ -17,62 +17,74 @@ def extract_model_part(model, part = "encoder", with_other_params = False):
     """
     assert part in ["encoder", "decoder"]
 
-    encoder_model = {}
-    # extract encoder and store in a orderedDict()
-    encoder_orddict = OrderedDict()
-    for key, values in model["model"].items():
-        if key.startswith("encoder"):
-            encoder_orddict[key] = values
-    encoder_model["model"] = encoder_orddict
-
+    if part == "encoder":
+        res_model = {}
+        # extract encoder and store in a orderedDict()
+        encoder_orddict = OrderedDict()
+        for key, values in model["model"].items():
+            if key.startswith("encoder"):
+                encoder_orddict[key] = values
+        res_model["model"] = encoder_orddict
+    else:
+        res_model = {}
+        # extract decoder and store in a orderedDict()
+        decoder_orddict = OrderedDict()
+        for key, values in model["model"].items():
+            if key.startswith("decoder"):
+                decoder_orddict[key] = values
+        res_model["model"] = decoder_orddict
     # add other parameters if needed
     if with_other_params:
         for key, values in model.items():
             if key != "model":
-                encoder_model[key] = values
+                res_model[key] = values
 
-    return encoder_model
+    return res_model
 
-def replace_encoder(model_a, model_b):
+def replace_part(model_a, model_b, part = 'encoder', keep_params = 0):
     """
-    return a new model dict that uses parameter from model_b and encoder from model_a
+    return a new model dict that concat model_a's part with model_b's counterpart.
     :param model_a: fairseq transformer model
     :param model_b: fairseq transformer model
+    :param keep_params: if set to 0, keep no other params inside the model; if set to 1, keep a's other parameters, if set to 2, keep b's other parameters
     """
     
-    #assert model_a != model_b  # do not allow overwrite input
-
-    #print("&&&&&&&&&&&&&&&&&&&&")
-
-    # scratchModel["model"]["encoder.version"][0] = 2 
-    # print(model_a["model"]["encoder.version"])
-    # print(model_a["model"]["encoder.version"].is_cuda)
-    # print(model_a["model"]["encoder.version"].dtype)
-
-    #print(type(model_a["model"]))
-
-    # create new dict
-    new_model = copy.deepcopy(model_b)
-    encoder_model = extract_model_part(model_a, 'encoder')
-
-
-    for (layerName_a,value_a), (layerName_b,value_b) in zip(encoder_model["model"].items(), new_model["model"].items()):
-        if (layerName_a == layerName_b and layerName_a.startswith("encoder")):
-            model_b["model"][layerName_b] = value_a
-        else:
-            print("Not Encoder anymore, STOP")
-
+    if part == 'encoder':
+        encoder_model = extract_model_part(model_a, 'encoder')
+        decoder_model = extract_model_part(model_b, 'decoder')
+    elif part == "decoder":
+        encoder_model = extract_model_part(model_b, 'encoder')
+        decoder_model = extract_model_part(model_a, 'decoder')
+        
+    new_model = {}
+    new_model_orderdict = OrderedDict(encoder_model.items() + decoder_model.items())
+    new_model["model"] = new_model_orderdict
+    
+    # whether to keep other parameters
+    if keep_params == 0:
+        return new_model
+    elif keep_params == 1:
+        for key, values in model_a.items():
+            if key != "model":
+                new_model[key] = values
+    elif keep_params == 2:
+        for key, values in model_b.items():
+            if key != "model":
+                new_model[key] = values
+                
     return new_model
 
-def replace_and_save(model_a_path, model_b_path, store_dir):
+def replace_and_save(model_a_path, model_b_path, store_dir, replace_part = "encoder", keep_params = 0):
     """
     :param model_a_path: path for model_a.pt
     :param model_b_path: path for model_b.pt
     :param store_dir: store directory
+    :param replace_part: use replace_part of model_a and counter_part of model_b to create a new model
+    :param keep_params: if set to 0, keep no other params inside the model; if set to 1, keep a's other parameters, if set to 2, keep b's other parameters
     """
     model_a = checkpoint_utils.load_checkpoint_to_cpu(model_a_path)
     model_b = checkpoint_utils.load_checkpoint_to_cpu(model_b_path)
-    replaced_model = replace_encoder(model_a, model_b)
+    replaced_model = replace_encoder(model_a, model_b, replace_part, keep_params)
 
     model_a_name = os.path.splitext(os.path.basename(model_a_path))[0]
     model_b_name = os.path.splitext(os.path.basename(model_b_path))[0]
