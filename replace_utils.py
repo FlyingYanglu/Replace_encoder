@@ -50,14 +50,18 @@ def replace_part(model_a, model_b, part = 'encoder', keep_params = 0):
     """
     
     if part == 'encoder':
+        print("extracting encoder")
         encoder_model = extract_model_part(model_a, 'encoder')
+        print("extracting decoder")
         decoder_model = extract_model_part(model_b, 'decoder')
     elif part == "decoder":
+        print("extracting encoder")
         encoder_model = extract_model_part(model_b, 'encoder')
+        print("extracting decoder")
         decoder_model = extract_model_part(model_a, 'decoder')
         
     new_model = {}
-    new_model_orderdict = OrderedDict(encoder_model.items() + decoder_model.items())
+    new_model_orderdict = OrderedDict(list(encoder_model.items()) + list(decoder_model.items()))
     new_model["model"] = new_model_orderdict
     
     # whether to keep other parameters
@@ -74,7 +78,7 @@ def replace_part(model_a, model_b, part = 'encoder', keep_params = 0):
                 
     return new_model
 
-def replace_and_save(model_a_path, model_b_path, store_dir, replace_part = "encoder", keep_params = 0):
+def replace_and_save(model_a_path, model_b_path, store_dir, part = "encoder", keep_params = 0):
     """
     :param model_a_path: path for model_a.pt
     :param model_b_path: path for model_b.pt
@@ -84,7 +88,7 @@ def replace_and_save(model_a_path, model_b_path, store_dir, replace_part = "enco
     """
     model_a = checkpoint_utils.load_checkpoint_to_cpu(model_a_path)
     model_b = checkpoint_utils.load_checkpoint_to_cpu(model_b_path)
-    replaced_model = replace_encoder(model_a, model_b, replace_part, keep_params)
+    replaced_model = replace_part(model_a, model_b, part, keep_params)
 
     model_a_name = os.path.splitext(os.path.basename(model_a_path))[0]
     model_b_name = os.path.splitext(os.path.basename(model_b_path))[0]
