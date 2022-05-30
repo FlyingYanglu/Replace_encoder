@@ -16,28 +16,23 @@ def extract_model_part(model, part = "encoder", with_other_params = False):
     :param with_other_params: default to False. If True, the model returned will include every parameter in the original model with only 'model' modified
     """
     assert part in ["encoder", "decoder"]
-
     if part == "encoder":
-        res_model = {}
         # extract encoder and store in a orderedDict()
         encoder_orddict = OrderedDict()
         for key, values in model["model"].items():
             if key.startswith("encoder"):
                 encoder_orddict[key] = values
-        res_model["model"] = encoder_orddict
+        res_model =encoder_orddict
     else:
-        res_model = {}
+        
         # extract decoder and store in a orderedDict()
         decoder_orddict = OrderedDict()
         for key, values in model["model"].items():
             if key.startswith("decoder"):
                 decoder_orddict[key] = values
-        res_model["model"] = decoder_orddict
-    # add other parameters if needed
-    if with_other_params:
-        for key, values in model.items():
-            if key != "model":
-                res_model[key] = values
+        
+        res_model =decoder_orddict
+    
 
     return res_model
 
@@ -48,7 +43,7 @@ def replace_part(model_a, model_b, part = 'encoder', keep_params = 0):
     :param model_b: fairseq transformer model
     :param keep_params: if set to 0, keep no other params inside the model; if set to 1, keep a's other parameters, if set to 2, keep b's other parameters
     """
-    
+    print(part)
     if part == 'encoder':
         print("extracting encoder")
         encoder_model = extract_model_part(model_a, 'encoder')
@@ -88,6 +83,7 @@ def replace_and_save(model_a_path, model_b_path, store_dir, part = "encoder", ke
     """
     model_a = checkpoint_utils.load_checkpoint_to_cpu(model_a_path)
     model_b = checkpoint_utils.load_checkpoint_to_cpu(model_b_path)
+    
     replaced_model = replace_part(model_a, model_b, part, keep_params)
 
     model_a_name = os.path.splitext(os.path.basename(model_a_path))[0]
