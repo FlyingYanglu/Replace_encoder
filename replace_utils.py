@@ -88,7 +88,11 @@ def replace_and_save(model_a_path, model_b_path, store_dir, part = "encoder", ke
 
     model_a_name = os.path.splitext(os.path.basename(model_a_path))[0]
     model_b_name = os.path.splitext(os.path.basename(model_b_path))[0]
-    new_file = model_a_name + "_enc_" + model_b_name + "_dec.pt"
+    if part == 'encoder':
+        new_file = model_a_name + "_enc_" + model_b_name + "_dec.pt"
+    else:
+        new_file = model_b_name + "_enc_" + model_a_name + "_dec.pt"
+    
     torch.save(replaced_model, f=open(os.path.join(store_dir, new_file), "wb"))
 
 
